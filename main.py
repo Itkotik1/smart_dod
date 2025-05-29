@@ -4,6 +4,7 @@ from dotenv import load_dotenv, find_dotenv
 from getpass import getpass
 
 from langchain_gigachat.chat_models.gigachat import GigaChat
+from langchain_core.messages import SystemMessage, HumanMessage
 
 # Загрузка переменных окружения
 load_dotenv(find_dotenv())
@@ -18,18 +19,23 @@ model = GigaChat(
     verify_ssl_certs=False
 )
 
-# Функция проверки задачи
-def check_task(task_name: str) -> str:
-    prompt = f"""
-    Проверь следующую задачу на соответствие принципам SMART (Specific, Measurable, Achievable, Relevant, Time-bound) 
-    и Definition of Done (DoD): "{task_name}".
 
-    Оцени её и верни один из трёх вариантов:
-    - соответствует
-    - не точное соответствие
-    - не соответствует
-    """
-    response = model.invoke(prompt)
+def check_task(task_name: str) -> str:
+    messages = [
+        SystemMessage(content="""Ты - эксперт по проверки наименований задач на соответствие требованиям SMART и DoD.
+                                Тебе будет дано название задачи [TASK] для проверки.
+                                Ты должен дать оценку в строгом формате: Наименование КР не сформулировано в виде SMART/DOD - если задача не соответствует требованиям, ОК - если соответствует.
+                                
+                                Примеры:
+                                [TASK] Завершены работы по адаптации каналов коммуникаций с банком на РЖЯ. Твой ответ: ОК.
+                                [TASK] Работа с оттоком. Разработаны пакеты услуг для сохранения клиентов в банке. Твой ответ: ОК.
+                                [TASK] Совместный кредитный счет. Твой ответ: Наименование КР не сформулировано в виде SMART/DOD.
+                                [TASK] Развитие и поддержание HR бренда Трайба Лояльность. Твой ответ: Наименование КР не сформулировано в виде SMART/DOD.
+
+        """),
+        HumanMessage(content=f"[TASK] {task_name}"),
+    ]
+    response = model.invoke(messages)
     return response.content.strip()
 
 # Чтение данных из Excel
